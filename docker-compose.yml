@@ -8,7 +8,12 @@ services:
     env_file:
       - .env
     environment:
-      TORCH_DEVICE: cpu
+      TORCH_DEVICE: cuda
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: ["gpu"]
     restart: unless-stopped
     volumes:
       - ./data/hf-cache:/root/.cache/huggingface

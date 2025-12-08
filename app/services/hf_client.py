@@ -96,6 +96,18 @@ def _load_pipeline(settings: Settings) -> DiffusionPipeline:
 
     pipeline = DiffusionPipeline.from_pretrained(settings.model_id, **load_kwargs)
 
+    # Apply turbo LoRA adapter if configured (matches reference usage for 8-step turbo weights).
+    if settings.lora_repo_id and settings.lora_weight_name:
+        pipeline.load_lora_weights(
+            settings.lora_repo_id,
+            weight_name=settings.lora_weight_name,
+            revision=settings.lora_revision,
+            token=settings.hf_auth_token,
+            cache_dir=settings.hf_cache_dir,
+        )
+        if settings.fuse_lora:
+            pipeline.fuse_lora(lora_scale=settings.lora_scale)
+
     if device == "cuda":
         pipeline.to("cuda")
     elif device == "mps":

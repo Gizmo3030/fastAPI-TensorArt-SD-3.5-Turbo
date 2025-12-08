@@ -8,8 +8,8 @@ class TextToImageRequest(BaseModel):
     negative_prompt: str | None = Field(default=None, max_length=600)
     width: int = Field(1024, ge=256, le=1536)
     height: int = Field(1024, ge=256, le=1536)
-    guidance_scale: float = Field(5.5, ge=0.0, le=20.0)
-    num_inference_steps: int = Field(28, ge=1, le=80)
+    guidance_scale: float = Field(1.5, ge=0.0, le=20.0)
+    num_inference_steps: int = Field(8, ge=1, le=80)
     seed: int | None = Field(default=None, ge=0, le=2_147_483_647)
 
     @validator("width", "height")

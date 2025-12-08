@@ -253,6 +253,7 @@ button:hover {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    grid-column: 1 / -1; /* span full width to give logs more room */
 }
 
 .console-head {
@@ -260,6 +261,11 @@ button:hover {
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
+}
+
+.console-actions {
+    display: flex;
+    gap: 0.5rem;
 }
 
 #log-output {

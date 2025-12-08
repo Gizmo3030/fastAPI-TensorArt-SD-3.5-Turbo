@@ -35,8 +35,8 @@ def _build_form_state(data: Dict[str, Any]) -> Dict[str, Any]:
         "negative_prompt": "low resolution, blurry",
         "width": 1024,
         "height": 1024,
-        "guidance_scale": 5.5,
-        "num_inference_steps": 28,
+        "guidance_scale": 1.5,
+        "num_inference_steps": 8,
         "seed": "",
     }
     defaults.update({k: v for k, v in data.items() if v is not None})
@@ -56,8 +56,8 @@ async def generate_via_form(
     negative_prompt: Optional[str] = Form(default=None),
     width: int = Form(1024),
     height: int = Form(1024),
-    guidance_scale: float = Form(5.5),
-    num_inference_steps: int = Form(28),
+    guidance_scale: float = Form(1.5),
+    num_inference_steps: int = Form(8),
     seed: Optional[str] = Form(default=None),
     settings: Settings = Depends(get_settings),
 ) -> HTMLResponse:

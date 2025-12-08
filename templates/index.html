@@ -98,7 +98,10 @@
                     <p class="eyebrow">Live Console</p>
                     <h2>Server Log Stream</h2>
                 </div>
-                <button type="button" class="ghost" id="toggle-scroll">Auto-scroll: On</button>
+                <div class="console-actions">
+                    <button type="button" class="ghost" id="copy-logs">Copy logs</button>
+                    <button type="button" class="ghost" id="toggle-scroll">Auto-scroll: On</button>
+                </div>
             </div>
             <pre id="log-output" aria-live="polite">Loading log buffer…</pre>
         </section>
@@ -117,12 +120,37 @@
             const resultFrame = document.getElementById("result-frame");
             const logOutput = document.getElementById("log-output");
             const toggleScroll = document.getElementById("toggle-scroll");
+            const copyLogsBtn = document.getElementById("copy-logs");
             let autoScroll = true;
 
             if (toggleScroll) {
                 toggleScroll.addEventListener("click", () => {
                     autoScroll = !autoScroll;
                     toggleScroll.textContent = `Auto-scroll: ${autoScroll ? "On" : "Off"}`;
+                });
+            }
+
+            if (copyLogsBtn && logOutput && navigator.clipboard) {
+                copyLogsBtn.addEventListener("click", async () => {
+                    const text = logOutput.textContent?.trim() ?? "";
+                    const hasLogs = text && !/(Awaiting log output…|Loading log buffer…)/.test(text);
+                    if (!hasLogs) {
+                        setToast("No logs to copy yet");
+                        window.setTimeout(() => setToast(null), 2000);
+                        return;
+                    }
+                    const originalLabel = copyLogsBtn.textContent;
+                    try {
+                        await navigator.clipboard.writeText(text);
+                        copyLogsBtn.textContent = "Copied";
+                    } catch (err) {
+                        setToast("Clipboard copy failed");
+                        window.setTimeout(() => setToast(null), 2000);
+                    } finally {
+                        window.setTimeout(() => {
+                            copyLogsBtn.textContent = originalLabel;
+                        }, 1500);
+                    }
                 });
             }
 
@@ -217,7 +245,7 @@
                 } catch (err) {
                     console.error(err);
                 } finally {
-                    window.setTimeout(pollLogs, 2000);
+                    window.setTimeout(pollLogs, 5000);
                 }
             }
 

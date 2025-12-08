@@ -42,7 +42,19 @@ def install_log_buffer(max_entries: int = 400) -> None:
 
     handler = _RingBufferHandler(max_entries=max_entries)
     handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s - %(message)s", "%H:%M:%S"))
-    logging.getLogger().addHandler(handler)
+
+    def _attach(logger_name: str) -> None:
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(logging.INFO)
+        logger.addHandler(handler)
+        logger.propagate = True
+
+    # Root plus common uvicorn loggers so request/access/error lines show up in the UI.
+    _attach("")
+    for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        _attach(name)
+
+    logging.getLogger(__name__).info("Log buffer installed")
     _BUFFER_HANDLER = handler
 
 
@@ -50,7 +62,6 @@ def get_recent_logs(limit: int = 200) -> List[str]:
     if _BUFFER_HANDLER is None:
         return []
     return _BUFFER_HANDLER.dump(limit)
-
 
 def clear_logs() -> None:
     if _BUFFER_HANDLER is None:

@@ -13,6 +13,7 @@ from app.config import Settings, get_settings
 from app.routers import images
 from app.schemas import TextToImageRequest
 from app.services.hf_client import generate_image
+from app.services.logs import get_recent_logs, install_log_buffer
 from app.services.validators import ensure_dimensions
 
 app = FastAPI(title="TensorArt Turbo UI", version="0.1.0")
@@ -20,6 +21,12 @@ app.include_router(images.router)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+install_log_buffer()
+
+
+@app.get("/api/logs")
+async def latest_logs(limit: int = 200) -> dict[str, list[str]]:
+    return {"lines": get_recent_logs(limit)}
 
 
 def _build_form_state(data: Dict[str, Any]) -> Dict[str, Any]:

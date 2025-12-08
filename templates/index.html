@@ -32,7 +32,7 @@
         </section>
 
         <section class="panel generator">
-            <form method="post" class="form-grid">
+            <form method="post" class="form-grid" data-generator-form>
                 <label>
                     <span>Prompt</span>
                     <textarea name="prompt" rows="3" required>{{ form.prompt }}</textarea>
@@ -66,24 +66,163 @@
                     </label>
                 </div>
                 <button type="submit">Render with TensorArt</button>
-                {% if error %}
-                <div class="toast error">{{ error }}</div>
-                {% endif %}
+                <div class="toast error" id="client-error" {% if not error %}hidden{% endif %}>{{ error or '' }}</div>
+                <div class="loading-indicator" id="render-loading" hidden>
+                    <div class="spinner" aria-hidden="true"></div>
+                    <div>
+                        <p>Spinning up the pipeline…</p>
+                        <p class="hint">First loads may take a minute while weights download.</p>
+                    </div>
+                </div>
             </form>
         </section>
 
         <section class="panel preview">
-            {% if result %}
-            <div class="image-frame">
-                <img src="data:image/png;base64,{{ result.image_base64 }}" alt="Generated artwork" />
-                <div class="meta">Ready in {{ result.elapsed_ms }} ms</div>
+            <div id="result-frame" data-has-result="{{ 'true' if result else 'false' }}">
+                {% if result %}
+                <div class="image-frame">
+                    <img src="data:image/png;base64,{{ result.image_base64 }}" alt="Generated artwork" />
+                    <div class="meta">Ready in {{ result.elapsed_ms }} ms</div>
+                </div>
+                {% else %}
+                <div class="placeholder">
+                    <p>Output will land here. Dream up something vibrant and hit “Render”.</p>
+                </div>
+                {% endif %}
             </div>
-            {% else %}
-            <div class="placeholder">
-                <p>Output will land here. Dream up something vibrant and hit “Render”.</p>
+        </section>
+
+        <section class="panel console">
+            <div class="console-head">
+                <div>
+                    <p class="eyebrow">Live Console</p>
+                    <h2>Server Log Stream</h2>
+                </div>
+                <button type="button" class="ghost" id="toggle-scroll">Auto-scroll: On</button>
             </div>
-            {% endif %}
+            <pre id="log-output" aria-live="polite">Loading log buffer…</pre>
         </section>
     </main>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const form = document.querySelector("[data-generator-form]");
+            if (!form || !window.fetch) {
+                return;
+            }
+
+            const button = form.querySelector('button[type="submit"]');
+            const defaultButtonLabel = button.textContent;
+            const loader = document.getElementById("render-loading");
+            const toast = document.getElementById("client-error");
+            const resultFrame = document.getElementById("result-frame");
+            const logOutput = document.getElementById("log-output");
+            const toggleScroll = document.getElementById("toggle-scroll");
+            let autoScroll = true;
+
+            if (toggleScroll) {
+                toggleScroll.addEventListener("click", () => {
+                    autoScroll = !autoScroll;
+                    toggleScroll.textContent = `Auto-scroll: ${autoScroll ? "On" : "Off"}`;
+                });
+            }
+
+            function showLoader(show) {
+                if (show) {
+                    loader?.removeAttribute("hidden");
+                    button.disabled = true;
+                    button.textContent = "Rendering…";
+                } else {
+                    loader?.setAttribute("hidden", "hidden");
+                    button.disabled = false;
+                    button.textContent = defaultButtonLabel;
+                }
+            }
+
+            function setToast(message) {
+                if (!toast) return;
+                if (!message) {
+                    toast.setAttribute("hidden", "hidden");
+                    toast.textContent = "";
+                    return;
+                }
+                toast.removeAttribute("hidden");
+                toast.textContent = message;
+            }
+
+            function updatePreview(data) {
+                if (!resultFrame) return;
+                resultFrame.dataset.hasResult = "true";
+                resultFrame.innerHTML = `
+                    <div class="image-frame">
+                        <img src="data:image/png;base64,${data.image_base64}" alt="Generated artwork" />
+                        <div class="meta">Ready in ${data.elapsed_ms} ms</div>
+                    </div>
+                `;
+            }
+
+            form.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                const formData = new FormData(form);
+                const payload = {
+                    prompt: formData.get("prompt") ?? "",
+                    negative_prompt: formData.get("negative_prompt") || null,
+                    width: Number(formData.get("width")),
+                    height: Number(formData.get("height")),
+                    guidance_scale: Number(formData.get("guidance_scale")),
+                    num_inference_steps: Number(formData.get("num_inference_steps")),
+                    seed: formData.get("seed") ? Number(formData.get("seed")) : null,
+                };
+
+                setToast(null);
+                showLoader(true);
+
+                try {
+                    const response = await fetch("/api/generate", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                    });
+
+                    if (!response.ok) {
+                        const errorBody = await response.json().catch(() => ({}));
+                        throw new Error(errorBody.detail || "Generation failed");
+                    }
+
+                    const data = await response.json();
+                    updatePreview(data);
+                } catch (err) {
+                    const message = err instanceof Error ? err.message : "Something went wrong";
+                    setToast(message);
+                } finally {
+                    showLoader(false);
+                }
+            });
+
+            async function pollLogs() {
+                try {
+                    const response = await fetch(`/api/logs?limit=200&_=${Date.now()}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        const lines = Array.isArray(data.lines) ? data.lines : [];
+                        if (logOutput) {
+                            const shouldStick =
+                                autoScroll &&
+                                Math.abs(logOutput.scrollHeight - logOutput.clientHeight - logOutput.scrollTop) < 20;
+                            logOutput.textContent = lines.length ? lines.join("\n") : "Awaiting log output…";
+                            if (shouldStick) {
+                                logOutput.scrollTop = logOutput.scrollHeight;
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error(err);
+                } finally {
+                    window.setTimeout(pollLogs, 2000);
+                }
+            }
+
+            pollLogs();
+        });
+    </script>
 </body>
 </html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TensorArt Turbo Studio</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+    <div class="aurora"></div>
+    <main class="shell">
+        <section class="panel hero">
+            <div>
+                <p class="eyebrow">TensorArt · SD 3.5 Turbo</p>
+                <h1>Generate bold visuals in seconds</h1>
+                <p class="lede">Streamlined FastAPI controls plus a focused UI so you can explore prompts, iterate quickly, and collect production-ready renders without leaving the browser.</p>
+                <ul class="stats">
+                    <li>
+                        <span class="value">{{ form.width }}×{{ form.height }}</span>
+                        <span class="label">Current Canvas</span>
+                    </li>
+                    <li>
+                        <span class="value">{{ form.num_inference_steps }}</span>
+                        <span class="label">Steps</span>
+                    </li>
+                    <li>
+                        <span class="value">{{ form.guidance_scale }}</span>
+                        <span class="label">Guidance</span>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="panel generator">
+            <form method="post" class="form-grid">
+                <label>
+                    <span>Prompt</span>
+                    <textarea name="prompt" rows="3" required>{{ form.prompt }}</textarea>
+                </label>
+                <label>
+                    <span>Negative Prompt</span>
+                    <textarea name="negative_prompt" rows="2">{{ form.negative_prompt or '' }}</textarea>
+                </label>
+                <div class="inline-fields">
+                    <label>
+                        <span>Width</span>
+                        <input type="number" name="width" min="256" max="1536" step="8" value="{{ form.width }}" required />
+                    </label>
+                    <label>
+                        <span>Height</span>
+                        <input type="number" name="height" min="256" max="1536" step="8" value="{{ form.height }}" required />
+                    </label>
+                </div>
+                <div class="inline-fields">
+                    <label>
+                        <span>Guidance</span>
+                        <input type="number" name="guidance_scale" step="0.1" min="0" max="20" value="{{ form.guidance_scale }}" required />
+                    </label>
+                    <label>
+                        <span>Steps</span>
+                        <input type="number" name="num_inference_steps" min="1" max="80" value="{{ form.num_inference_steps }}" required />
+                    </label>
+                    <label>
+                        <span>Seed</span>
+                        <input type="text" name="seed" inputmode="numeric" pattern="[0-9]*" value="{{ form.seed }}" placeholder="auto" />
+                    </label>
+                </div>
+                <button type="submit">Render with TensorArt</button>
+                {% if error %}
+                <div class="toast error">{{ error }}</div>
+                {% endif %}
+            </form>
+        </section>
+
+        <section class="panel preview">
+            {% if result %}
+            <div class="image-frame">
+                <img src="data:image/png;base64,{{ result.image_base64 }}" alt="Generated artwork" />
+                <div class="meta">Ready in {{ result.elapsed_ms }} ms</div>
+            </div>
+            {% else %}
+            <div class="placeholder">
+                <p>Output will land here. Dream up something vibrant and hit “Render”.</p>
+            </div>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

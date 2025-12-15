@@ -1,0 +1,27 @@
+# Reduce Docker build context size
+.git
+.gitignore
+.env
+.env.*
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.dll
+*.log
+
+.venv/
+venv/
+
+# Cache and artifacts
+coverage*
+.pytest_cache/
+.mypy_cache/
+__pycache__/
+
+# Large model/data caches (mounted at runtime)
+data/hf-cache/
+
+# Node/JS (if present)
+node_modules/
